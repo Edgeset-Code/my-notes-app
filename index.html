@@ -196,7 +196,6 @@
   </div>
 
   <script>
-    // ← PASTE YOUR APPS SCRIPT URL HERE
     var SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxoNCQx4NGyXeeYUs4B-TLfWJGOEz3vpIVUwJek8z6bd-aTPYks0DL_yoroSBsXS_H2/exec';
 
     var catStyles = {
@@ -227,7 +226,7 @@
       var active = notes.filter(function(n) { return !n.done; });
       active.reverse();
 
-      var count   = active.length;
+      var count = active.length;
       document.getElementById('counter').innerText = count + ' pending';
 
       if (count === 0) {
@@ -240,7 +239,6 @@
         return;
       }
 
-      // Group by category
       var grouped = {};
       catOrder.forEach(function(cat) { grouped[cat] = []; });
       active.forEach(function(n) {
@@ -287,9 +285,18 @@
       fetch(SCRIPT_URL + '?markDone=' + rowIndex)
         .then(function() {
           setTimeout(function() {
+            // Find parent category group before removing
+            var group = el.closest('.cat-group');
             el.remove();
+
+            // If no more notes in this group remove the whole group
+            if (group && group.querySelectorAll('.note').length === 0) {
+              group.remove();
+            }
+
             var remaining = document.querySelectorAll('.note').length;
             document.getElementById('counter').innerText = remaining + ' pending';
+
             if (remaining === 0) {
               document.getElementById('list').innerHTML =
                 '<div class="empty">'
@@ -302,7 +309,6 @@
         });
     }
 
-    // Load notes when page opens
     loadNotes();
   </script>
 
