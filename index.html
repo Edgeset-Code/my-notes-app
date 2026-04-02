@@ -278,9 +278,14 @@
       document.getElementById('list').innerHTML = html;
     }
 
-    function markDone(rowIndex) {
+   function markDone(rowIndex) {
       var el    = document.getElementById('note-' + rowIndex);
-      var group = el.closest('.cat-group');
+
+      // Walk up the DOM to find the cat-group parent
+      var group = el.parentNode;
+      while (group && !group.classList.contains('cat-group')) {
+        group = group.parentNode;
+      }
 
       el.classList.add('removing');
 
@@ -289,11 +294,13 @@
           setTimeout(function() {
             el.remove();
 
-            if (group && group.querySelectorAll('.note').length === 0) {
+            // Count remaining notes in this group
+            var notesLeft = group ? group.getElementsByClassName('note').length : 1;
+            if (group && notesLeft === 0) {
               group.remove();
             }
 
-            var remaining = document.querySelectorAll('.note').length;
+            var remaining = document.getElementsByClassName('note').length;
             document.getElementById('counter').innerText = remaining + ' pending';
 
             if (remaining === 0) {
@@ -307,7 +314,6 @@
           }, 350);
         });
     }
-
     loadNotes();
   </script>
 
