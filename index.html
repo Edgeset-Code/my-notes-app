@@ -279,17 +279,16 @@
     }
 
     function markDone(rowIndex) {
-      var el = document.getElementById('note-' + rowIndex);
+      var el    = document.getElementById('note-' + rowIndex);
+      var group = el.closest('.cat-group');
+
       el.classList.add('removing');
 
       fetch(SCRIPT_URL + '?markDone=' + rowIndex)
         .then(function() {
           setTimeout(function() {
-            // Find parent category group before removing
-            var group = el.closest('.cat-group');
             el.remove();
 
-            // If no more notes in this group remove the whole group
             if (group && group.querySelectorAll('.note').length === 0) {
               group.remove();
             }
