@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>Day Planner</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+    html, body { height: 100%; font-family: -apple-system, Arial, sans-serif; background: #f0f2f5; overflow-x: hidden; }
+    body { padding-bottom: calc(40px + env(safe-area-inset-bottom)); }
+    header { background: linear-gradient(135deg, #2E6DB4, #1a4a8a); color: white; padding: 16px; padding-top: calc(16px + env(safe-area-inset-top)); position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 12px rgba(0,0,0,0.25); display: flex; align-items: center; justify-content: space-between; }
+    header h1 { font-size: 24px; font-weight: 700; }
+    header p  { font-size: 13px; opacity: 0.8; margin-top: 2px; }
+    .header-link { color: rgba(255,255,255,0.75); font-size: 13px; text-decoration: none; border: 1px solid rgba(255,255,255,0.3); padding: 6px 12px; border-radius: 8px; white-space: nowrap; }
+    .container { max-width: 680px; margin: 0 auto; padding: 20px 16px; }
+    .card { background: white; border-radius: 12px; padding: 16px; margin-bottom: 16px; box-shadow: 0 1px 4px rgba(0,0,0,0.07); }
+    .section-label { font-size: 11px; font-weight: 700; color: #888; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 10px; }
+    .morning-row { display: flex; justify-content: space-between; font-size: 14px; padding: 5px 0; border-bottom: 1px solid #f5f5f5; }
+    .morning-row:last-child { border-bottom: none; }
+    .morning-time { color: #888; width: 110px; flex-shrink: 0; }
+    .energy-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    .energy-btn { padding: 10px 6px; font-size: 13px; background: #f5f5f5; border: 2px solid transparent; border-radius: 8px; cursor: pointer; color: #666; text-align: center; transition: all 0.15s; }
+    .energy-btn.selected { background: white; border-color: #2E6DB4; color: #2E6DB4; font-weight: 600; }
+    input[type="text"], textarea { font-family: -apple-system, Arial, sans-serif; font-size: 15px; color: #1a1a1a; background: #f9f9f9; border: 1px solid #e0e0e0; border-radius: 8px; padding: 10px 12px; width: 100%; outline: none; }
+    input[type="text"]:focus, textarea:focus { border-color: #2E6DB4; background: white; }
+    input.time-field { width: 95px; flex-shrink: 0; background: #f9f9f9; border: 1px solid #e0e0e0; border-radius: 8px; padding: 10px 12px; font-size: 15px; font-family: -apple-system, Arial, sans-serif; color: #1a1a1a; outline: none; }
+    input.desc-field { flex: 1; min-width: 0; background: #f9f9f9; border: 1px solid #e0e0e0; border-radius: 8px; padding: 10px 12px; font-size: 15px; font-family: -apple-system, Arial, sans-serif; color: #1a1a1a; outline: none; }
+    .input-row { display: flex; gap: 8px; margin-bottom: 8px; align-items: center; }
+    .add-btn { font-size: 14px; color: #888; background: none; border: 1.5px dashed #ddd; border-radius: 8px; padding: 10px 12px; cursor: pointer; width: 100%; text-align: left; }
+    .add-btn:active { background: #f9f9f9; }
+    .remove-btn { font-size: 22px; color: #ccc; background: none; border: none; cursor: pointer; padding: 2px 8px; flex-shrink: 0; line-height: 1; }
+    .remove-btn:active { color: #e74c3c; }
+    .notes-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+    .notes-status { font-size: 12px; color: #aaa; }
+    .notes-status.loading { color: #888; }
+    .notes-status.error   { color: #e74c3c; font-weight: 600; }
+    .notes-status.ok      { color: #27ae60; font-weight: 600; }
+    .refresh-btn-small { font-size: 13px; color: #555; background: #f0f0f0; border: none; border-radius: 6px; padding: 5px 12px; cursor: pointer; }
+    .task-group { margin-bottom: 14px; }
+    .task-group-label { font-size: 11px; font-weight: 700; color: #aaa; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px; }
+    .task-item { display: flex; align-items: center; gap: 10px; padding: 11px 12px; background: #f9f9f9; border-radius: 8px; margin-bottom: 4px; cursor: pointer; border: 1.5px solid transparent; transition: all 0.15s; min-height: 48px; }
+    .task-item.selected { background: white; border-color: #2E6DB4; }
+    .task-check { width: 20px; height: 20px; border-radius: 4px; border: 1.5px solid #ddd; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: bold; }
+    .task-item.selected .task-check { background: #2E6DB4; border-color: #2E6DB4; color: white; }
+    .task-text { font-size: 15px; color: #1a1a1a; flex: 1; line-height: 1.3; }
+    .cat-badge { font-size: 11px; padding: 3px 8px; border-radius: 10px; font-weight: 600; flex-shrink: 0; }
+    .cat-Work         { background: #e8f0fb; color: #2E6DB4; }
+    .cat-Errands      { background: #fdf0e0; color: #e67e22; }
+    .cat-Reminder     { background: #f5eafb; color: #8e44ad; }
+    .cat-Ideas        { background: #fdecea; color: #c0392b; }
+    .cat-Shopping     { background: #e8f8f0; color: #27ae60; }
+    .cat-Uncategorized{ background: #f0f0f0; color: #888; }
+    .toggle-row { display: flex; align-items: center; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #f5f5f5; }
+    .toggle-row:last-child { border-bottom: none; }
+    .toggle-label { font-size: 15px; color: #1a1a1a; padding-right: 12px; }
+    .toggle { position: relative; width: 44px; height: 24px; flex-shrink: 0; }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; inset: 0; background: #ddd; border-radius: 24px; cursor: pointer; transition: background 0.2s; }
+    .slider:before { content: ''; position: absolute; width: 18px; height: 18px; left: 3px; top: 3px; background: white; border-radius: 50%; transition: transform 0.2s; box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
+    input:checked + .slider { background: #2E6DB4; }
+    input:checked + .slider:before { transform: translateX(20px); }
+    .build-btn { width: 100%; padding: 18px; font-size: 18px; font-weight: 700; background: linear-gradient(135deg, #2E6DB4, #1a4a8a); color: white; border: none; border-radius: 14px; cursor: pointer; box-shadow: 0 4px 14px rgba(46,109,180,0.4); margin-top: 8px; }
+    .build-btn:active { opacity: 0.85; transform: scale(0.98); }
+    .build-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+    .field-hint { font-size: 12px; color: #bbb; margin-bottom: 10px; }
+    #plan-output { display: none; margin-top: 16px; }
+    #plan-output .card { border-left: 4px solid #2E6DB4; }
+    #plan-output h2 { font-size: 16px; font-weight: 700; color: #1a4a8a; margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between; }
+    #plan-content { font-size: 15px; line-height: 1.7; color: #1a1a1a; white-space: pre-wrap; word-wrap: break-word; }
+    .plan-actions { display: flex; gap: 8px; margin-top: 14px; }
+    .plan-action-btn { flex: 1; padding: 12px; font-size: 14px; font-weight: 600; border: none; border-radius: 10px; cursor: pointer; }
+    .plan-copy-btn { background: #f0f0f0; color: #333; }
+    .plan-copy-btn:active { background: #e0e0e0; }
+    .plan-new-btn  { background: #2E6DB4; color: white; }
+    .plan-new-btn:active { opacity: 0.8; }
+    .thinking { display: flex; align-items: center; gap: 8px; padding: 12px 0; color: #888; font-size: 14px; }
+    .dot { width: 6px; height: 6px; border-radius: 50%; background: #2E6DB4; animation: bounce 1.2s infinite; }
+    .dot:nth-child(2) { animation-delay: 0.2s; }
+    .dot:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes bounce { 0%,80%,100%{transform:scale(0.6);opacity:0.4} 40%{transform:scale(1);opacity:1} }
+  </style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>📅 Day Planner</h1>
+    <p>Build tomorrow's plan each evening</p>
+  </div>
+  <a class="header-link" href="index.html">📋 Notes</a>
+</header>
+
+<div class="container">
+
+  <div class="card">
+    <div class="section-label">Tomorrow's date</div>
+    <input type="text" id="date-input" placeholder="e.g. Tuesday, April 15" style="max-width:280px;" />
+  </div>
+
+  <div class="card">
+    <div class="section-label">Fixed morning baseline</div>
+    <div class="morning-row"><span class="morning-time">6:30 – 7:15</span><span>Meal prep</span></div>
+    <div class="morning-row"><span class="morning-time">7:15 – 7:35</span><span>Shower and get dressed</span></div>
+    <div class="morning-row"><span class="morning-time">7:35 – 7:45</span><span>Silent sit</span></div>
+    <div class="morning-row"><span class="morning-time">7:45 – 8:05</span><span>Morning journal</span></div>
+    <div class="morning-row"><span class="morning-time">8:05 – 9:00</span><span>Light buffer before work</span></div>
+  </div>
+
+  <div class="card">
+    <div class="section-label">Energy going into tomorrow</div>
+    <div class="energy-grid">
+      <button class="energy-btn" onclick="selectEnergy(this, 'low — feeling calm and rested')">Low / calm</button>
+      <button class="energy-btn" onclick="selectEnergy(this, 'moderate — feeling balanced')">Moderate</button>
+      <button class="energy-btn" onclick="selectEnergy(this, 'high — already feeling amped or anxious')">High / amped</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="notes-header">
+      <div class="section-label" style="margin-bottom:0;">Tasks from your notes</div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span class="notes-status loading" id="notes-status">Loading...</span>
+        <button class="refresh-btn-small" onclick="loadNotes()">↻ Refresh</button>
+      </div>
+    </div>
+    <p class="field-hint" style="margin-top:8px;">Tap any task to include it in tomorrow's plan</p>
+    <div id="tasks-container"></div>
+  </div>
+
+  <div class="card">
+    <div class="section-label">Meetings or appointments</div>
+    <p class="field-hint">Time (optional) + description</p>
+    <div id="meetings-list"></div>
+    <button class="add-btn" onclick="addMeeting()">+ add meeting or appointment</button>
+  </div>
+
+  <div class="card">
+    <div class="section-label">Errands or tasks outside the home</div>
+    <p class="field-hint">Time (optional) + description</p>
+    <div id="errands-list"></div>
+    <button class="add-btn" onclick="addErrand()">+ add errand or task</button>
+  </div>
+
+  <div class="card">
+    <div class="section-label">Exercise or movement</div>
+    <p class="field-hint">Type and preferred time — can go anywhere including after work</p>
+    <div id="exercise-list"></div>
+    <button class="add-btn" onclick="addExercise()">+ add exercise or walk</button>
+  </div>
+
+  <div class="card">
+    <div class="section-label">Stillness practices</div>
+    <div class="toggle-row"><span class="toggle-label">Morning silent sit (7:35, 10 min)</span><label class="toggle"><input type="checkbox" id="t-sit" checked><span class="slider"></span></label></div>
+    <div class="toggle-row"><span class="toggle-label">Morning journal (7:45, 3 prompts)</span><label class="toggle"><input type="checkbox" id="t-journal" checked><span class="slider"></span></label></div>
+    <div class="toggle-row"><span class="toggle-label">Box breathing threshold ritual (9:00)</span><label class="toggle"><input type="checkbox" id="t-box" checked><span class="slider"></span></label></div>
+    <div class="toggle-row"><span class="toggle-label">90-min STOP resets during work</span><label class="toggle"><input type="checkbox" id="t-stop" checked><span class="slider"></span></label></div>
+    <div class="toggle-row"><span class="toggle-label">Nowhere walk (midday)</span><label class="toggle"><input type="checkbox" id="t-walk" checked><span class="slider"></span></label></div>
+    <div class="toggle-row"><span class="toggle-label">4-7-8 deceleration (~3pm)</span><label class="toggle"><input type="checkbox" id="t-478" checked><span class="slider"></span></label></div>
+    <div class="toggle-row"><span class="toggle-label">Work closing ritual (4:45)</span><label class="toggle"><input type="checkbox" id="t-close" checked><span class="slider"></span></label></div>
+    <div class="toggle-row"><span class="toggle-label">Cooking as meditation (evening)</span><label class="toggle"><input type="checkbox" id="t-cook" checked><span class="slider"></span></label></div>
+    <div class="toggle-row"><span class="toggle-label">Wind-down signal (8:30)</span><label class="toggle"><input type="checkbox" id="t-wind" checked><span class="slider"></span></label></div>
+    <div class="toggle-row"><span class="toggle-label">Book over phone at bedtime</span><label class="toggle"><input type="checkbox" id="t-book" checked><span class="slider"></span></label></div>
+  </div>
+
+  <div class="card">
+    <div class="section-label">Anything else worth noting? (optional)</div>
+    <textarea id="notes" rows="3" placeholder="e.g. big deadline, social event, travel day, early meeting..."></textarea>
+  </div>
+
+  <button class="build-btn" id="build-btn" onclick="buildPlan()">Build tomorrow's plan</button>
+
+  <div id="plan-output">
+    <div class="card">
+      <h2>
+        <span>Tomorrow's plan</span>
+        <span id="plan-date-label" style="font-size:13px;font-weight:400;color:#888;"></span>
+      </h2>
+      <div id="plan-thinking" class="thinking" style="display:none;">
+        <div class="dot"></div><div class="dot"></div><div class="dot"></div>
+        <span>Building your plan...</span>
+      </div>
+      <div id="plan-content"></div>
+      <div class="plan-actions" id="plan-actions" style="display:none;">
+        <button class="plan-action-btn plan-copy-btn" onclick="copyPlan()">Copy plan</button>
+        <button class="plan-action-btn plan-new-btn" onclick="scrollToTop()">Build another</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  var SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyNdyzFqnKMLlxt-WAKyeWj0de2-GNiVbV45BvUFwI5iLV591Z_oBZ7WoC-9vu_DcwF/exec';
+
+  var catOrder = ['Work','Errands','Reminder','Ideas','Shopping List','Uncategorized'];
+  var catKey   = {'Work':'Work','Errands':'Errands','Reminder':'Reminder','Ideas':'Ideas','Shopping List':'Shopping','Uncategorized':'Uncategorized'};
+  var selectedEnergy = '';
+  var selectedTasks  = new Set();
+
+  window.addEventListener('load', function() { loadNotes(); });
+
+  function loadNotes() {
+    var status    = document.getElementById('notes-status');
+    var container = document.getElementById('tasks-container');
+    status.className   = 'notes-status loading';
+    status.textContent = 'Loading...';
+    container.innerHTML = '';
+    selectedTasks.clear();
+    fetch(SCRIPT_URL)
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        var incomplete = data.notes.filter(function(n) { return !n.done; });
+        status.className   = 'notes-status ok';
+        status.textContent = incomplete.length + ' pending tasks';
+        renderTasks(incomplete);
+      })
+      .catch(function(err) {
+        console.error(err);
+        status.className   = 'notes-status error';
+        status.textContent = 'Could not load — tap refresh';
+        container.innerHTML = '<p style="font-size:14px;color:#aaa;padding:8px 0;">Unable to reach your notes. Try refreshing.</p>';
+      });
+  }
+
+  function renderTasks(notes) {
+    var container = document.getElementById('tasks-container');
+    container.innerHTML = '';
+    if (notes.length === 0) {
+      container.innerHTML = '<p style="font-size:15px;color:#aaa;padding:10px 0;">No incomplete tasks — you\'re all caught up.</p>';
+      return;
+    }
+    var groups = {};
+    catOrder.forEach(function(c) { groups[c] = []; });
+    notes.forEach(function(n) {
+      var cat = groups[n.category] !== undefined ? n.category : 'Uncategorized';
+      groups[cat].push(n);
+    });
+    catOrder.forEach(function(cat) {
+      if (!groups[cat] || groups[cat].length === 0) return;
+      var group = document.createElement('div');
+      group.className = 'task-group';
+      var label = document.createElement('div');
+      label.className = 'task-group-label';
+      label.textContent = cat;
+      group.appendChild(label);
+      groups[cat].forEach(function(task) {
+        var item  = document.createElement('div');
+        item.className = 'task-item';
+        item.dataset.index = task.index;
+        item.dataset.text  = task.text;
+        item.dataset.cat   = task.category;
+        var check = document.createElement('div');
+        check.className = 'task-check';
+        check.id = 'chk-' + task.index;
+        var text  = document.createElement('span');
+        text.className = 'task-text';
+        text.textContent = task.text;
+        var badge = document.createElement('span');
+        badge.className = 'cat-badge cat-' + (catKey[task.category] || 'Uncategorized');
+        badge.textContent = task.category;
+        item.appendChild(check); item.appendChild(text); item.appendChild(badge);
+        item.onclick = function() { toggleTask(item, task.index); };
+        group.appendChild(item);
+      });
+      container.appendChild(group);
+    });
+  }
+
+  function toggleTask(el, idx) {
+    var chk = document.getElementById('chk-' + idx);
+    if (selectedTasks.has(idx)) {
+      selectedTasks.delete(idx); el.classList.remove('selected'); chk.textContent = '';
+    } else {
+      selectedTasks.add(idx); el.classList.add('selected'); chk.textContent = '✓';
+    }
+  }
+
+  function selectEnergy(btn, val) {
+    document.querySelectorAll('.energy-btn').forEach(function(b) { b.classList.remove('selected'); });
+    btn.classList.add('selected');
+    selectedEnergy = val;
+  }
+
+  function addTimedRow(containerId, descPlaceholder) {
+    var container = document.getElementById(containerId);
+    var row = document.createElement('div'); row.className = 'input-row';
+    var t = document.createElement('input'); t.className = 'time-field'; t.type = 'text'; t.placeholder = '10:00am';
+    var d = document.createElement('input'); d.className = 'desc-field'; d.type = 'text'; d.placeholder = descPlaceholder;
+    var r = document.createElement('button'); r.className = 'remove-btn'; r.textContent = '×'; r.onclick = function() { row.remove(); };
+    row.appendChild(t); row.appendChild(d); row.appendChild(r);
+    container.appendChild(row); d.focus();
+  }
+
+  function addSimpleRow(containerId, placeholder) {
+    var container = document.getElementById(containerId);
+    var row = document.createElement('div'); row.className = 'input-row';
+    var i = document.createElement('input'); i.type = 'text'; i.placeholder = placeholder; i.style.flex = '1';
+    var r = document.createElement('button'); r.className = 'remove-btn'; r.textContent = '×'; r.onclick = function() { row.remove(); };
+    row.appendChild(i); row.appendChild(r);
+    container.appendChild(row); i.focus();
+  }
+
+  function addMeeting()  { addTimedRow('meetings-list', 'e.g. team standup, doctor appointment'); }
+  function addErrand()   { addTimedRow('errands-list',  'e.g. grocery store (~1 hr)'); }
+  function addExercise() { addSimpleRow('exercise-list','e.g. 30-min walk after work, gym at noon'); }
+
+  function getToggle(id, label) { return document.getElementById(id).checked ? label : null; }
+
+  function buildPlan() {
+    var date  = document.getElementById('date-input').value.trim() || 'tomorrow';
+    var notes = document.getElementById('notes').value.trim();
+
+    var chosenTasks = [];
+    document.querySelectorAll('.task-item').forEach(function(el) {
+      if (selectedTasks.has(parseInt(el.dataset.index)))
+        chosenTasks.push('[' + el.dataset.cat + '] ' + el.dataset.text);
+    });
+
+    var meetings = [];
+    document.querySelectorAll('#meetings-list .input-row').forEach(function(row) {
+      var inputs = row.querySelectorAll('input');
+      var time = inputs[0].value.trim(); var desc = inputs[1].value.trim();
+      if (desc) meetings.push(time ? time + ' — ' + desc : desc);
+    });
+
+    var errands = [];
+    document.querySelectorAll('#errands-list .input-row').forEach(function(row) {
+      var inputs = row.querySelectorAll('input');
+      var time = inputs[0].value.trim(); var desc = inputs[1].value.trim();
+      if (desc) errands.push(time ? time + ' — ' + desc : desc);
+    });
+
+    var exercise = [];
+    document.querySelectorAll('#exercise-list .input-row').forEach(function(row) {
+      var v = row.querySelector('input').value.trim();
+      if (v) exercise.push(v);
+    });
+
+    var practices = [
+      getToggle('t-sit',    'morning silent sit at 7:35'),
+      getToggle('t-journal','morning journal at 7:45'),
+      getToggle('t-box',    'box breathing threshold ritual at 9:00'),
+      getToggle('t-stop',   '90-min STOP resets during work'),
+      getToggle('t-walk',   'nowhere walk at midday'),
+      getToggle('t-478',    '4-7-8 deceleration around 3pm'),
+      getToggle('t-close',  'work closing ritual at 4:45'),
+      getToggle('t-cook',   'cooking as meditation in the evening'),
+      getToggle('t-wind',   'wind-down signal at 8:30'),
+      getToggle('t-book',   'book over phone at bedtime'),
+    ].filter(Boolean);
+
+    var planData = {
+      date: date, energy: selectedEnergy,
+      tasks: chosenTasks, meetings: meetings,
+      errands: errands, exercise: exercise,
+      practices: practices, notes: notes
+    };
+
+    var btn       = document.getElementById('build-btn');
+    var output    = document.getElementById('plan-output');
+    var thinking  = document.getElementById('plan-thinking');
+    var content   = document.getElementById('plan-content');
+    var actions   = document.getElementById('plan-actions');
+    var dateLabel = document.getElementById('plan-date-label');
+
+    btn.disabled = true;
+    btn.textContent = 'Building...';
+    output.style.display = 'block';
+    thinking.style.display = 'flex';
+    content.textContent = '';
+    actions.style.display = 'none';
+    dateLabel.textContent = date;
+    output.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+    fetch(SCRIPT_URL + '?action=buildPlan&data=' + encodeURIComponent(JSON.stringify(planData)))
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        thinking.style.display = 'none';
+        if (data.content && data.content[0] && data.content[0].text) {
+          content.textContent = data.content[0].text;
+        } else if (data.error) {
+          content.textContent = 'Error: ' + (data.error.message || JSON.stringify(data.error));
+        } else {
+          content.textContent = 'Unexpected response:\n\n' + JSON.stringify(data);
+        }
+        actions.style.display = 'flex';
+        btn.disabled = false;
+        btn.textContent = 'Build another plan';
+      })
+      .catch(function(err) {
+        thinking.style.display = 'none';
+        content.textContent = 'Error: ' + err.message;
+        actions.style.display = 'flex';
+        btn.disabled = false;
+        btn.textContent = 'Try again';
+      });
+  }
+
+  function copyPlan() {
+    var text = document.getElementById('plan-content').textContent;
+    navigator.clipboard.writeText(text).then(function() {
+      var btn = document.querySelector('.plan-copy-btn');
+      btn.textContent = 'Copied!';
+      setTimeout(function() { btn.textContent = 'Copy plan'; }, 2000);
+    });
+  }
+
+  function scrollToTop() {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    document.getElementById('build-btn').textContent = 'Build tomorrow\'s plan';
+  }
+</script>
+</body>
+</html>
