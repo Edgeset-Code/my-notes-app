@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>My Notes</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+    html, body {
+      height: 100%;
+      width: 100%;
+      font-family: -apple-system, Arial, sans-serif;
+      background: #f0f2f5;
+      overflow-x: hidden;
+    }
+
+    body {
+      padding-bottom: env(safe-area-inset-bottom);
+    }
+
+    header {
+      background: linear-gradient(135deg, #2E6DB4, #1a4a8a);
+      color: white;
+      padding: 16px;
+      padding-top: calc(16px + env(safe-area-inset-top));
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.25);
+    }
+
+    .header-left h1 {
+      font-size: 28px;
+      font-weight: 700;
+    }
+
+    .counter {
+      background: #FF6B35;
+      color: white;
+      font-size: 16px;
+      font-weight: bold;
+      padding: 5px 14px;
+      border-radius: 20px;
+      margin-top: 5px;
+      display: inline-block;
+    }
+
+    .header-right {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .refresh-btn {
+      background: rgba(255,255,255,0.15);
+      border: 2px solid rgba(255,255,255,0.4);
+      color: white;
+      padding: 10px 16px;
+      border-radius: 10px;
+      font-size: 18px;
+      font-weight: bold;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-block;
+    }
+
+    .csv-btn {
+      background: rgba(30,123,69,0.8);
+      border: 2px solid rgba(255,255,255,0.4);
+      color: white;
+      padding: 6px 12px;
+      border-radius: 10px;
+      font-size: 12px;
+      font-weight: bold;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-block;
+      white-space: nowrap;
+    }
+
+    .refresh-btn:active { background: rgba(255,255,255,0.35); }
+    .csv-btn:active { background: rgba(30,123,69,1); }
+
+    .list {
+      padding: 14px;
+      width: 100%;
+    }
+
+    .loading {
+      text-align: center;
+      padding: 60px 20px;
+      color: #aaa;
+      font-size: 20px;
+    }
+
+    .cat-group { margin-bottom: 18px; }
+
+    .cat-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 14px 16px;
+      border-radius: 12px 12px 0 0;
+      margin-bottom: 1px;
+    }
+
+    .cat-emoji { font-size: 24px; }
+
+    .cat-name {
+      font-size: 19px;
+      font-weight: 700;
+      flex: 1;
+    }
+
+    .cat-count {
+      color: white;
+      font-size: 14px;
+      font-weight: bold;
+      padding: 4px 10px;
+      border-radius: 12px;
+    }
+
+    .note {
+      background: white;
+      margin-bottom: 1px;
+      display: flex;
+      align-items: stretch;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+      transition: transform 0.35s ease, opacity 0.35s ease;
+      overflow: hidden;
+      min-height: 96px;
+    }
+
+    .note:last-child { border-radius: 0 0 12px 12px; }
+    .note.removing { transform: translateX(110%); opacity: 0; }
+
+    .note-left {
+      flex: 1;
+      padding: 18px 16px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .note-title {
+      font-size: 22px;
+      font-weight: 600;
+      color: #1a1a1a;
+      line-height: 1.3;
+    }
+
+    .note-bottom {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .note-badge {
+      font-size: 13px;
+      font-weight: 600;
+      padding: 3px 10px;
+      border-radius: 10px;
+    }
+
+    .note-date { font-size: 13px; color: #bbb; }
+
+    .done-btn {
+      color: white;
+      border: none;
+      width: 80px;
+      font-size: 26px;
+      font-weight: bold;
+      cursor: pointer;
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      min-height: 96px;
+      transition: opacity 0.2s;
+    }
+
+    .done-btn:active { opacity: 0.6; }
+    .done-label { font-size: 13px; font-weight: 600; }
+
+    .empty {
+      text-align: center;
+      padding: 80px 20px;
+    }
+
+    .empty-emoji { font-size: 72px; margin-bottom: 16px; }
+    .empty p { font-size: 24px; font-weight: 600; color: #aaa; margin-bottom: 8px; }
+    .empty-sub { font-size: 16px; color: #ccc; font-weight: 400; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="header-left">
+      <h1>📋 My Notes</h1>
+      <span class="counter" id="counter">Loading...</span>
+    </div>
+    <div class="header-right">
+      <button class="refresh-btn" onclick="loadNotes()">↻ Refresh</button>
+      <a class="csv-btn" href="https://script.google.com/macros/s/AKfycbxoNCQx4NGyXeeYUs4B-TLfWJGOEz3vpIVUwJek8z6bd-aTPYks0DL_yoroSBsXS_H2/exec?csv=true">📥 Download CSV</a>
+    </div>
+  </header>
+
+  <div class="list" id="list">
+    <div class="loading">Loading your notes...</div>
+  </div>
+
+  <script>
+    var SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxoNCQx4NGyXeeYUs4B-TLfWJGOEz3vpIVUwJek8z6bd-aTPYks0DL_yoroSBsXS_H2/exec';
+
+    var catStyles = {
+      'Shopping List' : { color: '#27ae60', bg: '#e8f8f0', emoji: '🛒' },
+      'Work'          : { color: '#2E6DB4', bg: '#e8f0fb', emoji: '💼' },
+      'Errands'       : { color: '#e67e22', bg: '#fdf0e0', emoji: '🚗' },
+      'Reminder'      : { color: '#8e44ad', bg: '#f5eafb', emoji: '⏰' },
+      'Ideas'         : { color: '#c0392b', bg: '#fdecea', emoji: '💡' },
+      'Uncategorized' : { color: '#888888', bg: '#f0f0f0', emoji: '📌' }
+    };
+
+    var catOrder = ['Shopping List', 'Work', 'Errands', 'Reminder', 'Ideas', 'Uncategorized'];
+
+    function loadNotes() {
+      document.getElementById('list').innerHTML = '<div class="loading">Loading your notes...</div>';
+      document.getElementById('counter').innerText = 'Loading...';
+
+      fetch(SCRIPT_URL)
+        .then(function(r) { return r.json(); })
+        .then(function(data) { renderNotes(data.notes); })
+        .catch(function(err) {
+          document.getElementById('list').innerHTML = '<div class="loading">Error loading notes. Try refreshing.</div>';
+          console.error(err);
+        });
+    }
+
+    function renderNotes(notes) {
+      var active = notes.filter(function(n) { return !n.done; });
+      active.reverse();
+
+      var count = active.length;
+      document.getElementById('counter').innerText = count + ' pending';
+
+      if (count === 0) {
+        document.getElementById('list').innerHTML =
+          '<div class="empty">'
+          + '<div class="empty-emoji">🎉</div>'
+          + '<p>All done!</p>'
+          + '<p class="empty-sub">Text your Google Voice number to add a note</p>'
+          + '</div>';
+        return;
+      }
+
+      var grouped = {};
+      catOrder.forEach(function(cat) { grouped[cat] = []; });
+      active.forEach(function(n) {
+        var cat = catStyles[n.category] ? n.category : 'Uncategorized';
+        grouped[cat].push(n);
+      });
+
+      var html = '';
+      catOrder.forEach(function(cat) {
+        var catNotes = grouped[cat];
+        if (catNotes.length === 0) return;
+        var style = catStyles[cat];
+
+        html += '<div class="cat-group">'
+              + '<div class="cat-header" style="border-left:5px solid ' + style.color + ';background:' + style.bg + ';">'
+              + '<span class="cat-emoji">' + style.emoji + '</span>'
+              + '<span class="cat-name" style="color:' + style.color + ';">' + cat + '</span>'
+              + '<span class="cat-count" style="background:' + style.color + ';">' + catNotes.length + '</span>'
+              + '</div>';
+
+        catNotes.forEach(function(n) {
+          html += '<div class="note" id="note-' + n.index + '">'
+                + '<div class="note-left" style="border-left:5px solid ' + style.color + ';">'
+                + '<span class="note-title">' + n.text + '</span>'
+                + '<span class="note-bottom">'
+                + '<span class="note-badge" style="background:' + style.bg + ';color:' + style.color + ';border:1px solid ' + style.color + ';">' + style.emoji + ' ' + cat + '</span>'
+                + '<span class="note-date">' + n.date + '</span>'
+                + '</span>'
+                + '</div>'
+                + '<button class="done-btn" style="background:' + style.color + ';" onclick="markDone(' + n.index + ')">✓<br><span class="done-label">Done</span></button>'
+                + '</div>';
+        });
+
+        html += '</div>';
+      });
+
+      document.getElementById('list').innerHTML = html;
+    }
+
+    function markDone(rowIndex) {
+      var el    = document.getElementById('note-' + rowIndex);
+      var group = el.parentNode;
+      while (group && !group.classList.contains('cat-group')) {
+        group = group.parentNode;
+      }
+
+      el.classList.add('removing');
+
+      fetch(SCRIPT_URL + '?markDone=' + rowIndex)
+        .then(function() {
+          setTimeout(function() {
+            el.remove();
+
+            var notesLeft = group ? group.getElementsByClassName('note').length : 1;
+            if (group && notesLeft === 0) {
+              group.remove();
+            }
+
+            var remaining = document.getElementsByClassName('note').length;
+            document.getElementById('counter').innerText = remaining + ' pending';
+
+            if (remaining === 0) {
+              document.getElementById('list').innerHTML =
+                '<div class="empty">'
+                + '<div class="empty-emoji">🎉</div>'
+                + '<p>All done!</p>'
+                + '<p class="empty-sub">Text your Google Voice number to add a note</p>'
+                + '</div>';
+            }
+          }, 350);
+        });
+    }
+
+    loadNotes();
+  </script>
+
+</body>
+</html>
