@@ -56,7 +56,7 @@
       <button class="refresh-btn" onclick="loadNotes()">↻ Refresh</button>
       <div class="header-btn-row">
         <a class="csv-btn" href="https://script.google.com/macros/s/AKfycbyNdyzFqnKMLlxt-WAKyeWj0de2-GNiVbV45BvUFwI5iLV591Z_oBZ7WoC-9vu_DcwF/exec?csv=true">📥 CSV</a>
-        <a class="planner-btn" href="https://script.google.com/macros/s/AKfycbyNdyzFqnKMLlxt-WAKyeWj0de2-GNiVbV45BvUFwI5iLV591Z_oBZ7WoC-9vu_DcwF/exec?page=planner">📅 Planner</a>
+        <a class="planner-btn" href="planner.html">📅 Planner</a>
       </div>
     </div>
   </header>
@@ -68,16 +68,59 @@
   <script>
     var SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyNdyzFqnKMLlxt-WAKyeWj0de2-GNiVbV45BvUFwI5iLV591Z_oBZ7WoC-9vu_DcwF/exec';
 
+    // Curated styles for the categories we know about
     var catStyles = {
       'Shopping List' : { color: '#27ae60', bg: '#e8f8f0', emoji: '🛒' },
+      'Shopping'      : { color: '#27ae60', bg: '#e8f8f0', emoji: '🛒' },
       'Work'          : { color: '#2E6DB4', bg: '#e8f0fb', emoji: '💼' },
       'Errands'       : { color: '#e67e22', bg: '#fdf0e0', emoji: '🚗' },
+      'Errand'        : { color: '#e67e22', bg: '#fdf0e0', emoji: '🚗' },
       'Reminder'      : { color: '#8e44ad', bg: '#f5eafb', emoji: '⏰' },
       'Ideas'         : { color: '#c0392b', bg: '#fdecea', emoji: '💡' },
+      'Idea'          : { color: '#c0392b', bg: '#fdecea', emoji: '💡' },
+      'Health'        : { color: '#16a085', bg: '#e6f7f3', emoji: '💊' },
+      'Finance'       : { color: '#d4a017', bg: '#fbf3dc', emoji: '💰' },
+      'Home'          : { color: '#7f5539', bg: '#f1e8e0', emoji: '🏠' },
+      'Personal'      : { color: '#5e4b8b', bg: '#ece8f5', emoji: '👤' },
+      'Urgent'        : { color: '#e74c3c', bg: '#fdebe9', emoji: '🚨' },
+      'Travel'        : { color: '#0098c4', bg: '#e0f4fb', emoji: '✈️' },
+      'Family'        : { color: '#d36b9c', bg: '#fbe8f1', emoji: '👨\u200d👩\u200d👧' },
       'Uncategorized' : { color: '#888888', bg: '#f0f0f0', emoji: '📌' }
     };
 
-    var catOrder = ['Shopping List', 'Work', 'Errands', 'Reminder', 'Ideas', 'Uncategorized'];
+    // Order of curated categories at the top (any unknown categories appear after, alphabetically)
+    var primaryOrder = ['Urgent', 'Shopping List', 'Shopping', 'Work', 'Errands', 'Errand',
+                        'Reminder', 'Ideas', 'Idea', 'Health', 'Finance', 'Home',
+                        'Personal', 'Travel', 'Family'];
+
+    // Fallback color palette for unknown categories — picked deterministically by category name
+    var fallbackPalette = [
+      { color: '#3498db', bg: '#e6f2fb' },
+      { color: '#9b59b6', bg: '#f1e7f7' },
+      { color: '#1abc9c', bg: '#e0f7f3' },
+      { color: '#e67e22', bg: '#fdf0e0' },
+      { color: '#34495e', bg: '#e9ecef' },
+      { color: '#16a085', bg: '#e0f3ed' },
+      { color: '#c0392b', bg: '#fdecea' },
+      { color: '#2980b9', bg: '#e3eef9' },
+      { color: '#8e44ad', bg: '#f0e3f5' },
+      { color: '#d35400', bg: '#fbe9da' }
+    ];
+
+    function hashString(str) {
+      var hash = 0;
+      for (var i = 0; i < str.length; i++) {
+        hash = ((hash << 5) - hash) + str.charCodeAt(i);
+        hash |= 0;
+      }
+      return Math.abs(hash);
+    }
+
+    function styleFor(cat) {
+      if (catStyles[cat]) return catStyles[cat];
+      var palette = fallbackPalette[hashString(cat) % fallbackPalette.length];
+      return { color: palette.color, bg: palette.bg, emoji: '🏷️' };
+    }
 
     function loadNotes() {
       document.getElementById('list').innerHTML = '<div class="loading">Loading your notes...</div>';
@@ -105,30 +148,46 @@
           '<div class="empty"><div class="empty-emoji">🎉</div><p>All done!</p><p class="empty-sub">Text your Google Voice number to add a note</p></div>';
         return;
       }
+
+      // Group notes by their actual category — accept whatever Claude returned
       var grouped = {};
-      catOrder.forEach(function(cat) { grouped[cat] = []; });
       active.forEach(function(n) {
-        var cat = catStyles[n.category] ? n.category : 'Uncategorized';
+        var cat = (n.category && n.category.trim()) ? n.category.trim() : 'Uncategorized';
+        if (!grouped[cat]) grouped[cat] = [];
         grouped[cat].push(n);
       });
+
+      // Build category render order: known primary categories first (in defined order),
+      // then any unknown categories alphabetically, with Uncategorized always last
+      var categoriesPresent = Object.keys(grouped);
+      var ordered = [];
+      primaryOrder.forEach(function(cat) {
+        if (grouped[cat] && ordered.indexOf(cat) === -1) ordered.push(cat);
+      });
+      categoriesPresent
+        .filter(function(c) { return ordered.indexOf(c) === -1 && c !== 'Uncategorized'; })
+        .sort()
+        .forEach(function(c) { ordered.push(c); });
+      if (grouped['Uncategorized']) ordered.push('Uncategorized');
+
       var html = '';
-      catOrder.forEach(function(cat) {
+      ordered.forEach(function(cat) {
         var catNotes = grouped[cat];
-        if (catNotes.length === 0) return;
-        var style = catStyles[cat];
+        if (!catNotes || catNotes.length === 0) return;
+        var style = styleFor(cat);
         html += '<div class="cat-group">'
               + '<div class="cat-header" style="border-left:5px solid ' + style.color + ';background:' + style.bg + ';">'
               + '<span class="cat-emoji">' + style.emoji + '</span>'
-              + '<span class="cat-name" style="color:' + style.color + ';">' + cat + '</span>'
+              + '<span class="cat-name" style="color:' + style.color + ';">' + escapeHtml(cat) + '</span>'
               + '<span class="cat-count" style="background:' + style.color + ';">' + catNotes.length + '</span>'
               + '</div>';
         catNotes.forEach(function(n) {
           html += '<div class="note" id="note-' + n.index + '">'
                 + '<div class="note-left" style="border-left:5px solid ' + style.color + ';">'
-                + '<span class="note-title">' + n.text + '</span>'
+                + '<span class="note-title">' + escapeHtml(n.text) + '</span>'
                 + '<span class="note-bottom">'
-                + '<span class="note-badge" style="background:' + style.bg + ';color:' + style.color + ';border:1px solid ' + style.color + ';">' + style.emoji + ' ' + cat + '</span>'
-                + '<span class="note-date">' + n.date + '</span>'
+                + '<span class="note-badge" style="background:' + style.bg + ';color:' + style.color + ';border:1px solid ' + style.color + ';">' + style.emoji + ' ' + escapeHtml(cat) + '</span>'
+                + '<span class="note-date">' + escapeHtml(n.date) + '</span>'
                 + '</span></div>'
                 + '<button class="done-btn" style="background:' + style.color + ';" onclick="markDone(' + n.index + ')">✓<br><span class="done-label">Done</span></button>'
                 + '</div>';
@@ -136,6 +195,14 @@
         html += '</div>';
       });
       document.getElementById('list').innerHTML = html;
+    }
+
+    function escapeHtml(s) {
+      return String(s)
+        .replace(/&/g,'&amp;')
+        .replace(/</g,'&lt;')
+        .replace(/>/g,'&gt;')
+        .replace(/"/g,'&quot;');
     }
 
     function markDone(rowIndex) {
