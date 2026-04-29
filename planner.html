@@ -40,19 +40,13 @@
     .notes-status.ok { color: #27ae60; font-weight: 600; }
     .refresh-btn-small { font-size: 13px; color: #555; background: #f0f0f0; border: none; border-radius: 6px; padding: 5px 12px; cursor: pointer; }
     .task-group { margin-bottom: 14px; }
-    .task-group-label { font-size: 11px; font-weight: 700; color: #aaa; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px; }
+    .task-group-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px; }
     .task-item { display: flex; align-items: center; gap: 10px; padding: 11px 12px; background: #f9f9f9; border-radius: 8px; margin-bottom: 4px; cursor: pointer; border: 1.5px solid transparent; transition: all 0.15s; min-height: 48px; }
     .task-item.selected { background: white; border-color: #2E6DB4; }
     .task-check { width: 20px; height: 20px; border-radius: 4px; border: 1.5px solid #ddd; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: bold; }
     .task-item.selected .task-check { background: #2E6DB4; border-color: #2E6DB4; color: white; }
     .task-text { font-size: 15px; color: #1a1a1a; flex: 1; line-height: 1.3; }
     .cat-badge { font-size: 11px; padding: 3px 8px; border-radius: 10px; font-weight: 600; flex-shrink: 0; }
-    .cat-Work { background: #e8f0fb; color: #2E6DB4; }
-    .cat-Errands { background: #fdf0e0; color: #e67e22; }
-    .cat-Reminder { background: #f5eafb; color: #8e44ad; }
-    .cat-Ideas { background: #fdecea; color: #c0392b; }
-    .cat-Shopping { background: #e8f8f0; color: #27ae60; }
-    .cat-Uncategorized { background: #f0f0f0; color: #888; }
     .toggle-row { display: flex; align-items: center; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #f5f5f5; }
     .toggle-row:last-child { border-bottom: none; }
     .toggle-label { font-size: 15px; color: #1a1a1a; padding-right: 12px; }
@@ -99,10 +93,8 @@
     .dot:nth-child(3) { animation-delay: 0.4s; }
     @keyframes bounce { 0%,80%,100%{transform:scale(0.6);opacity:0.4} 40%{transform:scale(1);opacity:1} }
 
-    /* Print-only header (hidden on screen) */
     .print-header { display: none; }
 
-    /* Print styles — activated when printing or saving as PDF */
     @media print {
       @page { margin: 0.6in; }
       html, body {
@@ -297,8 +289,61 @@
 <script>
   var SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyNdyzFqnKMLlxt-WAKyeWj0de2-GNiVbV45BvUFwI5iLV591Z_oBZ7WoC-9vu_DcwF/exec';
 
-  var catOrder = ['Work','Errands','Reminder','Ideas','Shopping List','Uncategorized'];
-  var catKey   = {'Work':'Work','Errands':'Errands','Reminder':'Reminder','Ideas':'Ideas','Shopping List':'Shopping','Uncategorized':'Uncategorized'};
+  var catStyles = {
+    'Shopping List' : { color: '#27ae60', bg: '#e8f8f0', emoji: '🛒' },
+    'Shopping'      : { color: '#27ae60', bg: '#e8f8f0', emoji: '🛒' },
+    'Work'          : { color: '#2E6DB4', bg: '#e8f0fb', emoji: '💼' },
+    'Errands'       : { color: '#e67e22', bg: '#fdf0e0', emoji: '🚗' },
+    'Errand'        : { color: '#e67e22', bg: '#fdf0e0', emoji: '🚗' },
+    'Reminder'      : { color: '#8e44ad', bg: '#f5eafb', emoji: '⏰' },
+    'Ideas'         : { color: '#c0392b', bg: '#fdecea', emoji: '💡' },
+    'Idea'          : { color: '#c0392b', bg: '#fdecea', emoji: '💡' },
+    'Health'        : { color: '#16a085', bg: '#e6f7f3', emoji: '💊' },
+    'Finance'       : { color: '#d4a017', bg: '#fbf3dc', emoji: '💰' },
+    'Home'          : { color: '#7f5539', bg: '#f1e8e0', emoji: '🏠' },
+    'Personal'      : { color: '#5e4b8b', bg: '#ece8f5', emoji: '👤' },
+    'Urgent'        : { color: '#e74c3c', bg: '#fdebe9', emoji: '🚨' },
+    'Travel'        : { color: '#0098c4', bg: '#e0f4fb', emoji: '✈️' },
+    'Family'        : { color: '#d36b9c', bg: '#fbe8f1', emoji: '👨\u200d👩\u200d👧' },
+    'Uncategorized' : { color: '#888888', bg: '#f0f0f0', emoji: '📌' }
+  };
+
+  var primaryOrder = ['Urgent', 'Shopping List', 'Shopping', 'Work', 'Errands', 'Errand',
+                      'Reminder', 'Ideas', 'Idea', 'Health', 'Finance', 'Home',
+                      'Personal', 'Travel', 'Family'];
+
+  var fallbackPalette = [
+    { color: '#3498db', bg: '#e6f2fb' },
+    { color: '#9b59b6', bg: '#f1e7f7' },
+    { color: '#1abc9c', bg: '#e0f7f3' },
+    { color: '#e67e22', bg: '#fdf0e0' },
+    { color: '#34495e', bg: '#e9ecef' },
+    { color: '#16a085', bg: '#e0f3ed' },
+    { color: '#c0392b', bg: '#fdecea' },
+    { color: '#2980b9', bg: '#e3eef9' },
+    { color: '#8e44ad', bg: '#f0e3f5' },
+    { color: '#d35400', bg: '#fbe9da' }
+  ];
+
+  function hashString(str) {
+    var hash = 0;
+    for (var i = 0; i < str.length; i++) {
+      hash = ((hash << 5) - hash) + str.charCodeAt(i);
+      hash |= 0;
+    }
+    return Math.abs(hash);
+  }
+
+  function styleFor(cat) {
+    if (catStyles[cat]) return catStyles[cat];
+    var palette = fallbackPalette[hashString(cat) % fallbackPalette.length];
+    return { color: palette.color, bg: palette.bg, emoji: '🏷️' };
+  }
+
+  function escapeHtml(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
   var selectedEnergy = '';
   var selectedTasks  = new Set();
   var lastPlanMarkdown = '';
@@ -335,35 +380,60 @@
       container.innerHTML = '<p style="font-size:15px;color:#aaa;padding:10px 0;">No incomplete tasks — you\'re all caught up.</p>';
       return;
     }
+
     var groups = {};
-    catOrder.forEach(function(c) { groups[c] = []; });
     notes.forEach(function(n) {
-      var cat = groups[n.category] !== undefined ? n.category : 'Uncategorized';
+      var cat = (n.category && n.category.trim()) ? n.category.trim() : 'Uncategorized';
+      if (!groups[cat]) groups[cat] = [];
       groups[cat].push(n);
     });
-    catOrder.forEach(function(cat) {
-      if (!groups[cat] || groups[cat].length === 0) return;
+
+    var ordered = [];
+    primaryOrder.forEach(function(cat) {
+      if (groups[cat] && ordered.indexOf(cat) === -1) ordered.push(cat);
+    });
+    Object.keys(groups)
+      .filter(function(c) { return ordered.indexOf(c) === -1 && c !== 'Uncategorized'; })
+      .sort()
+      .forEach(function(c) { ordered.push(c); });
+    if (groups['Uncategorized']) ordered.push('Uncategorized');
+
+    ordered.forEach(function(cat) {
+      var catNotes = groups[cat];
+      if (!catNotes || catNotes.length === 0) return;
+      var style = styleFor(cat);
+
       var group = document.createElement('div');
       group.className = 'task-group';
+
       var label = document.createElement('div');
       label.className = 'task-group-label';
-      label.textContent = cat;
+      label.style.color = style.color;
+      label.textContent = style.emoji + '  ' + cat;
       group.appendChild(label);
-      groups[cat].forEach(function(task) {
+
+      catNotes.forEach(function(task) {
         var item  = document.createElement('div');
         item.className = 'task-item';
         item.dataset.index = task.index;
         item.dataset.text  = task.text;
-        item.dataset.cat   = task.category;
+        item.dataset.cat   = cat;
+
         var check = document.createElement('div');
         check.className = 'task-check';
         check.id = 'chk-' + task.index;
+
         var text  = document.createElement('span');
         text.className = 'task-text';
         text.textContent = task.text;
+
         var badge = document.createElement('span');
-        badge.className = 'cat-badge cat-' + (catKey[task.category] || 'Uncategorized');
-        badge.textContent = task.category;
+        badge.className = 'cat-badge';
+        badge.style.background = style.bg;
+        badge.style.color = style.color;
+        badge.style.border = '1px solid ' + style.color;
+        badge.textContent = cat;
+
         item.appendChild(check); item.appendChild(text); item.appendChild(badge);
         item.onclick = function() { toggleTask(item, task.index); };
         group.appendChild(item);
@@ -498,8 +568,8 @@
           var planHtml = marked.parse(data.data.plan);
           if (data.data.quote && data.data.quote.text) {
             planHtml += '<div class="quote-block">' +
-                        '"' + data.data.quote.text + '"' +
-                        '<span class="quote-author">— ' + (data.data.quote.author || 'Unknown') + '</span>' +
+                        '"' + escapeHtml(data.data.quote.text) + '"' +
+                        '<span class="quote-author">— ' + escapeHtml(data.data.quote.author || 'Unknown') + '</span>' +
                         '</div>';
           }
           content.innerHTML = planHtml;
